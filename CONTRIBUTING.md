@@ -22,3 +22,11 @@ go build                               # compiles and packages an executable bin
 go test                                # runs tests
 ./watchtower                           # runs the application (outside of a container)
 ```
+
+## Docker image (works for me)
+```
+docker pull centurylink/golang-builder:latest                                   # download the builder
+docker run -v $(pwd):/src centurylink/golang-builder:latest                     # build the minimal binary
+docker build -t <yourfork>/watchtower:latest .                                  # build the docker image
+docker run -v /var/run/docker.sock:/var/run/docker.sock <yourfork>/watchtower   # run the application (inside of a container)
+```
