@@ -84,9 +84,9 @@ func main() {
 			Usage: "enable debug mode with verbose logging",
 		},
 		cli.StringSliceFlag{
-			Name: "notifications",
-			Value: &cli.StringSlice{},
-			Usage: "notification types to send (valid: email)",
+			Name:   "notifications",
+			Value:  &cli.StringSlice{},
+			Usage:  "notification types to send (valid: email, slack)",
 			EnvVar: "WATCHTOWER_NOTIFICATIONS",
 		},
 		cli.StringFlag{
@@ -113,6 +113,17 @@ func main() {
 			Name: "notification-email-server-password",
 			Usage: "SMTP server password for sending notifications",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD",
+		},
+		cli.StringFlag{
+			Name:   "notification-slack-hook-url",
+			Usage:  "The Slack Hook URL to send notifications to",
+			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL",
+		},
+		cli.StringFlag{
+			Name:   "notification-slack-identifier",
+			Usage:  "A string which will be used to identify the messages comming from this watchtower instance. Default if omitted is \"watchtower\"",
+			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER",
+			Value:  "watchtower",
 		},
 	}
 
