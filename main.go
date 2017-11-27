@@ -121,7 +121,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "notification-slack-identifier",
-			Usage:  "A string which will be used to identify the messages comming from this watchtower instance. Default if omitted is \"watchtower\"",
+			Usage:  "A string which will be used to identify the messages coming from this watchtower instance. Default if omitted is \"watchtower\"",
 			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER",
 			Value:  "watchtower",
 		},
