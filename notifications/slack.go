@@ -2,7 +2,6 @@ package notifications
 
 import (
 	"github.com/johntdyer/slackrus"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -20,7 +19,7 @@ func newSlackNotifier(c *cli.Context) typeNotifier {
 		SlackrusHook: slackrus.SlackrusHook{
 			HookURL:        c.GlobalString("notification-slack-hook-url"),
 			Username:       c.GlobalString("notification-slack-identifier"),
-			AcceptedLevels: slackrus.LevelThreshold(logrus.DebugLevel),
+			AcceptedLevels: slackrus.LevelThreshold(log.DebugLevel),
 		},
 	}
 
