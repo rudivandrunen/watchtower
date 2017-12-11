@@ -8,8 +8,8 @@ import (
 
 	"strconv"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/robfig/cron"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/v2tec/watchtower/actions"
 	"github.com/v2tec/watchtower/container"
@@ -124,6 +124,12 @@ func main() {
 			Usage:  "A string which will be used to identify the messages coming from this watchtower instance. Default if omitted is \"watchtower\"",
 			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER",
 			Value:  "watchtower",
+		},
+		cli.StringFlag{
+			Name:   "notification-slack-level",
+			Usage:  "The log level used for sending notifications through Slack. Default if omitted is \"info\". Possible values: \"panic\",\"fatal\",\"error\",\"warn\",\"info\" or \"debug\"",
+			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_LEVEL",
+			Value:  "info",
 		},
 	}
 

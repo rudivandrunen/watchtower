@@ -205,6 +205,8 @@ Additionally, you should set the Slack webhook url using the `--notification-sla
 
 By default, watchtower will send messages under the name `watchtower`, you can customize this string through the `--notification-slack-identifier` option or the `WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER` environment variable.
 
+It is possible to control the log level which is used for the Slack notifications through the option `--notification-slack-level` or `WATCHTOWER_NOTIFICATION_SLACK_LEVEL` environment variable. If omitted, the default log level is `info`. Possible values are: `panic`, `fatal`, `error`, `warn`, `info` or `debug`.
+
 Example:
 
 ```bash
@@ -214,5 +216,6 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=slack \
   -e WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL="https://hooks.slack.com/services/xxx/yyyyyyyyyyyyyyy" \
   -e WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-server-1 \
+  -e WATCHTOWER_NOTIFICATION_SLACK_LEVEL=error \
   v2tec/watchtower
 ```
