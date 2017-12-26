@@ -4,7 +4,8 @@ import (
 	"errors"
 	"os"
 	"strings"
-	log "github.com/Sirupsen/logrus"
+
+	log "github.com/sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/reference"
 	"github.com/docker/docker/cli/command"
@@ -35,7 +36,7 @@ func EncodedEnvAuth(ref string) (string, error) {
 	username := os.Getenv("REPO_USER")
 	password := os.Getenv("REPO_PASS")
 	if username != "" && password != "" {
-		auth := types.AuthConfig {
+		auth := types.AuthConfig{
 			Username: username,
 			Password: password,
 		}
@@ -80,7 +81,6 @@ func ParseServerAddress(ref string) (string, error) {
 	}
 	parts := strings.Split(repository, "/")
 	return parts[0], nil
-	
 }
 
 // CredentialsStore returns a new credentials store based

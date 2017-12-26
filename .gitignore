@@ -1,1 +1,4 @@
 watchtower
+vendor
+.glide
+dist

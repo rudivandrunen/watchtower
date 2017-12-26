@@ -1,25 +1,33 @@
-package main // import "github.com/CenturyLinkLabs/watchtower"
+package main // import "github.com/v2tec/watchtower"
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
-	"github.com/CenturyLinkLabs/watchtower/actions"
-	"github.com/CenturyLinkLabs/watchtower/container"
-	log "github.com/Sirupsen/logrus"
+	"strconv"
+
+	"github.com/robfig/cron"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"github.com/v2tec/watchtower/actions"
+	"github.com/v2tec/watchtower/container"
+	"github.com/v2tec/watchtower/notifications"
 )
 
+// DockerAPIMinVersion is the version of the docker API, which is minimally required by
+// watchtower. Currently we require at least API 1.24 and therefore Docker 1.12 or later.
+const DockerAPIMinVersion string = "1.24"
+
+var version = "master"
+
 var (
-	wg           sync.WaitGroup
 	client       container.Client
-	pollInterval time.Duration
+	scheduleSpec string
 	cleanup      bool
 	noRestart    bool
+	notifier     *notifications.Notifier
 )
 
 func init() {
@@ -29,6 +37,7 @@ func init() {
 func main() {
 	app := cli.NewApp()
 	app.Name = "watchtower"
+	app.Version = version
 	app.Usage = "Automatically update running Docker containers"
 	app.Before = before
 	app.Action = start
@@ -44,6 +53,11 @@ func main() {
 			Usage:  "poll interval (in seconds)",
 			Value:  300,
 			EnvVar: "WATCHTOWER_POLL_INTERVAL",
+		},
+		cli.StringFlag{
+			Name:   "schedule, s",
+			Usage:  "the cron expression which defines when to update",
+			EnvVar: "WATCHTOWER_SCHEDULE",
 		},
 		cli.BoolFlag{
 			Name:   "no-pull",
@@ -69,10 +83,53 @@ func main() {
 			Name:  "debug",
 			Usage: "enable debug mode with verbose logging",
 		},
+		cli.StringSliceFlag{
+			Name:   "notifications",
+			Value:  &cli.StringSlice{},
+			Usage:  "notification types to send (valid: email, slack)",
+			EnvVar: "WATCHTOWER_NOTIFICATIONS",
+		},
 		cli.StringFlag{
-			Name:   "apiversion",
-			Usage:  "the version of the docker api",
-			EnvVar: "DOCKER_API_VERSION",
+			Name: "notification-email-from",
+			Usage: "Address to send notification e-mails from",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_FROM",
+		},
+		cli.StringFlag{
+			Name: "notification-email-to",
+			Usage: "Address to send notification e-mails to",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_TO",
+		},
+		cli.StringFlag{
+			Name: "notification-email-server",
+			Usage: "SMTP server to send notification e-mails through",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER",
+		},
+		cli.StringFlag{
+			Name: "notification-email-server-user",
+			Usage: "SMTP server user for sending notifications",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER",
+		},
+		cli.StringFlag{
+			Name: "notification-email-server-password",
+			Usage: "SMTP server password for sending notifications",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD",
+		},
+		cli.StringFlag{
+			Name:   "notification-slack-hook-url",
+			Usage:  "The Slack Hook URL to send notifications to",
+			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL",
+		},
+		cli.StringFlag{
+			Name:   "notification-slack-identifier",
+			Usage:  "A string which will be used to identify the messages coming from this watchtower instance. Default if omitted is \"watchtower\"",
+			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER",
+			Value:  "watchtower",
+		},
+		cli.StringFlag{
+			Name:   "notification-slack-level",
+			Usage:  "The log level used for sending notifications through Slack. Default if omitted is \"info\". Possible values: \"panic\",\"fatal\",\"error\",\"warn\",\"info\" or \"debug\"",
+			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_LEVEL",
+			Value:  "info",
 		},
 	}
 
@@ -86,7 +143,17 @@ func before(c *cli.Context) error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	pollInterval = time.Duration(c.Int("interval")) * time.Second
+	pollingSet := c.IsSet("interval")
+	cronSet := c.IsSet("schedule")
+
+	if pollingSet && cronSet {
+		log.Fatal("Only schedule or interval can be defined, not both.")
+	} else if cronSet {
+		scheduleSpec = c.String("schedule")
+	} else {
+		scheduleSpec = "@every " + strconv.Itoa(c.Int("interval")) + "s"
+	}
+
 	cleanup = c.GlobalBool("cleanup")
 	noRestart = c.GlobalBool("no-restart")
 
@@ -97,40 +164,61 @@ func before(c *cli.Context) error {
 	}
 
 	client = container.NewClient(!c.GlobalBool("no-pull"))
+	notifier = notifications.NewNotifier(c)
 
-	handleSignals()
 	return nil
 }
 
-func start(c *cli.Context) {
+func start(c *cli.Context) error {
 	names := c.Args()
 
 	if err := actions.CheckPrereqs(client, cleanup); err != nil {
 		log.Fatal(err)
 	}
 
-	for {
-		wg.Add(1)
-		if err := actions.Update(client, names, cleanup, noRestart); err != nil {
-			fmt.Println(err)
-		}
-		wg.Done()
+	tryLockSem := make(chan bool, 1)
+	tryLockSem <- true
 
-		time.Sleep(pollInterval)
+	cron := cron.New()
+	err := cron.AddFunc(
+		scheduleSpec,
+		func() {
+			select {
+			case v := <-tryLockSem:
+				defer func() { tryLockSem <- v }()
+				notifier.StartNotification()
+				if err := actions.Update(client, names, cleanup, noRestart); err != nil {
+					log.Println(err)
+				}
+				notifier.SendNotification()
+			default:
+				log.Debug("Skipped another update already running.")
+			}
+
+			nextRuns := cron.Entries()
+			if len(nextRuns) > 0 {
+				log.Debug("Scheduled next run: " + nextRuns[0].Next.String())
+			}
+		})
+
+	if err != nil {
+		return err
 	}
-}
 
-func handleSignals() {
+	log.Info("First run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
+	cron.Start()
+
 	// Graceful shut-down on SIGINT/SIGTERM
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	signal.Notify(c, syscall.SIGTERM)
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+	signal.Notify(interrupt, syscall.SIGTERM)
 
-	go func() {
-		<-c
-		wg.Wait()
-		os.Exit(1)
-	}()
+	<-interrupt
+	cron.Stop()
+	log.Info("Waiting for running update to be finished...")
+	<-tryLockSem
+	os.Exit(1)
+	return nil
 }
 
 func setEnvOptStr(env string, opt string) error {
@@ -157,7 +245,7 @@ func envConfig(c *cli.Context) error {
 
 	err = setEnvOptStr("DOCKER_HOST", c.GlobalString("host"))
 	err = setEnvOptBool("DOCKER_TLS_VERIFY", c.GlobalBool("tlsverify"))
-	err = setEnvOptStr("DOCKER_API_VERSION", c.GlobalString("apiversion"))
+	err = setEnvOptStr("DOCKER_API_VERSION", DockerAPIMinVersion)
 
 	return err
 }
