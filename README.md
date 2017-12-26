@@ -3,7 +3,7 @@
 [![GoDoc](https://godoc.org/github.com/v2tec/watchtower?status.svg)](https://godoc.org/github.com/v2tec/watchtower)&nbsp;
 [![](https://images.microbadger.com/badges/image/v2tec/watchtower.svg)](https://microbadger.com/images/v2tec/watchtower "Get your own image badge on microbadger.com")
 
-A process for watching your Docker containers and automatically restarting them whenever their base image is refreshed.
+ A process for watching your Docker containers and automatically restarting them whenever their base image is refreshed.
 
 ## Overview
 
