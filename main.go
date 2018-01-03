@@ -80,11 +80,6 @@ func main() {
 			EnvVar: "DOCKER_TLS_VERIFY",
 		},
 		cli.BoolFlag{
-			Name:   "label-enable",
-			Usage:  "watch containers where the com.centurylinklabs.watchtower.enable label is true",
-			EnvVar: "WATCHTOWER_LABEL_ENABLE",
-		},
-		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "enable debug mode with verbose logging",
 		},
@@ -168,7 +163,7 @@ func before(c *cli.Context) error {
 		return err
 	}
 
-	client = container.NewClient(!c.GlobalBool("no-pull"), c.GlobalBool("label-enable"))
+	client = container.NewClient(!c.GlobalBool("no-pull"))
 	notifier = notifications.NewNotifier(c)
 
 	return nil
