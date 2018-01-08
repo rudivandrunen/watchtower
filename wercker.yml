@@ -1,12 +1,12 @@
 # box: alexeiled/go-builder:1.8-onbuild
-box: golang
+box: golang:1.7.4
 build:
   steps:
     - script:
         name: install glide
         code: |
           curl https://glide.sh/get | sh
-          glide update novendor
+#          glide update novendor
 
     # Gets the dependencies
 #    - script:
