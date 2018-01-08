@@ -18,7 +18,8 @@ build:
     - script:
         name: go build
         code: |
-          go build $(glide novendor)
+#          go build $(glide novendor)
+          go build ./..
 
 # Test the project
 #    - script:
