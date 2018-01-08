@@ -9,9 +9,8 @@ build:
         code: |
           curl https://glide.sh/get | sh
 #          glide update novendor
-
-    # Gets the dependencies
-   - script:
+# Gets the dependencies
+    - script:
         name: glide install
         code: |
           cd $WERCKER_SOURCE_DIR
