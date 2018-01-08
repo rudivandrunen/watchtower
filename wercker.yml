@@ -9,10 +9,10 @@ build:
 #          glide update novendor
 
     # Gets the dependencies
-#    - script:
-#        name: glide install
-#        code: |
-#          glide install
+    - script:
+        name: glide install
+        code: |
+          glide install
 
     # Build the project
     - script:
