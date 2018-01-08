@@ -2,6 +2,8 @@
 box: golang:1.7.4
 build:
   steps:
+    - setup-go-workspace
+    
     - script:
         name: install glide
         code: |
@@ -9,10 +11,10 @@ build:
 #          glide update novendor
 
     # Gets the dependencies
-    - script:
-        name: glide install
-        code: |
-          glide install
+#    - script:
+#        name: glide install
+#       code: |
+#          glide install
 
     # Build the project
     - script:
