@@ -6,7 +6,7 @@ build:
         name: install glide
         code: |
           curl https://glide.sh/get | sh
-#          glide update
+          glide update novendor
 
     # Gets the dependencies
 #    - script:
